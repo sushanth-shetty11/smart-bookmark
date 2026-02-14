@@ -1,36 +1,188 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔖 Smart Bookmark
 
-## Getting Started
+A simple, real-time bookmark manager built using **Next.js (App Router) + Supabase**.
+Users can securely log in with Google and manage personal bookmarks with instant cross-tab synchronization.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🚀 Live Demo
+
+Vercel URL: https://smart-bookmark-lime.vercel.app/
+GitHub Repo:
+
+---
+
+## ✨ Features
+
+* 🔐 Google OAuth Authentication
+* ➕ Add bookmarks
+* ✏️ Edit bookmarks
+* 🗑️ Delete bookmarks
+* ⚡ Real-time updates across multiple tabs/devices
+* 🧠 User-specific data isolation using Row Level Security (RLS)
+* 📱 Clean and responsive UI
+
+---
+
+## 🛠 Tech Stack
+
+* **Frontend:** Next.js (App Router), React, Tailwind CSS
+* **Backend:** Supabase (Database, Auth, Realtime)
+* **Deployment:** Vercel
+
+---
+
+## 🗄 Database Design
+
+Table: `bookmarks`
+
+| Column     | Type      |
+| ---------- | --------- |
+| id         | uuid      |
+| user_id    | uuid      |
+| title      | text      |
+| url        | text      |
+| created_at | timestamp |
+
+Each bookmark belongs to a specific authenticated user.
+
+---
+
+## 🔐 Security (RLS Policies)
+
+Row Level Security ensures users can only access their own bookmarks:
+
+* SELECT → only own data
+* INSERT → only for logged in user
+* UPDATE → only own rows
+* DELETE → only own rows
+
+---
+
+## ⚡ Realtime Functionality
+
+Supabase realtime subscriptions are used to synchronize data instantly across tabs.
+
+Examples:
+
+* Add bookmark in Tab A → appears in Tab B instantly
+* Edit bookmark → updates everywhere
+* Delete bookmark → removes everywhere without refresh
+
+---
+
+## 🧩 Problems Faced & Solutions
+
+### 1. New to Supabase
+
+Initially I was unfamiliar with how Supabase handles:
+
+* authentication sessions
+* row level security
+* realtime subscriptions
+
+I learned how client-side auth tokens interact with database policies and why queries fail without proper RLS configuration.
+
+---
+
+### 2. Insert Failing (RLS violation)
+
+**Problem:**
+`new row violates row-level security policy`
+
+**Cause:**
+`user_id` was not matching the authenticated user.
+
+**Solution:**
+Configured RLS policy using:
+
+```
+auth.uid() = user_id
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+and set default value of `user_id` properly from the logged-in session.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Duplicate Key Error
 
-## Learn More
+**Problem:**
+Only one bookmark could be inserted.
 
-To learn more about Next.js, take a look at the following resources:
+**Cause:**
+A unique constraint accidentally existed on `user_id`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Solution:**
+Removed incorrect unique constraint so each user can store multiple bookmarks.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+### 4. Delete Not Updating in Realtime (Major Issue)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Problem:**
+Delete worked in the same tab but not in other tabs unless refreshed.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Cause:**
+Supabase realtime DELETE events only send the row `id`, not full row data.
+My code was filtering by `user_id`, so the event was ignored.
+
+**Solution:**
+Instead of filtering by `user_id`, the UI now removes the bookmark if the deleted `id` exists in local state.
+This made cross-tab delete fully realtime.
+
+---
+
+### 5. Realtime Subscription Issues
+
+**Problem:**
+Subscriptions stopped working after refactoring.
+
+**Cause:**
+Multiple hooks were managing realtime and state separately causing lifecycle conflicts.
+
+**Solution:**
+Created a single `useBookmarks` hook responsible for:
+
+* fetching
+* realtime subscription
+* CRUD operations
+* cleanup
+
+This stabilized realtime updates.
+
+---
+
+## 📚 What I Learned
+
+* How authentication works with database authorization (RLS)
+* Managing realtime subscriptions safely in React
+* Handling optimistic UI updates
+* Debugging production-level async behavior
+* Structuring a maintainable Next.js App Router project
+
+---
+
+## 🧪 How to Run Locally
+
+```bash
+git clone <repo>
+cd smart-bookmark
+npm install
+npm run dev
+```
+
+Add environment variables:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+```
+
+---
+
+## 📌 Conclusion
+
+This project demonstrates a full-stack real-time application using modern web technologies.
+The focus was not just functionality, but also security, reliability, and real-world debugging.
+
+---
