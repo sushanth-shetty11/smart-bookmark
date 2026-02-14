@@ -8,7 +8,7 @@ Users can securely log in with Google and manage personal bookmarks with instant
 ## 🚀 Live Demo
 
 Vercel URL: https://smart-bookmark-lime.vercel.app/
-GitHub Repo:
+GitHub Repo: https://github.com/sushanth-shetty11/smart-bookmark.git
 
 ---
 
